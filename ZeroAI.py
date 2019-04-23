@@ -5,9 +5,34 @@ import requests
 import datetime
 import time
 
-html_path = "HTML/Stocks/"
-Equities_path = os.path.join(html_path, "*美国*.htm*")
-Equities_pattern = r'<td\sclass="bold\sleft\snoWrap\selp\splusIconTd">.+?boundblank="">([^><"]+)</a><span.+?data-id="(\d+)"'
+mode=1 #Mode:1 股票; 2 加密货币;3 外汇;4 指数;5 大宗商品
+
+markets = {
+    1: "Stocks",
+    2: "Crypto"
+    }
+startdays = {
+    1: 180,
+    2: 120
+    }
+paths = {
+    1: "Stocks/China/",
+    2: "Crypto/"
+    }
+MaxRows = {
+    1: 2000,
+    2: 1000
+    }
+patterns = {
+    1: r'<td\sclass="bold\sleft\snoWrap\selp\splusIconTd">.+?boundblank="">([^><"]+)</a><span.+?data-id="(\d+)"',
+    2: r'<tr.+?rank\sicon">\d+<.+?title="(.+?)".+?title=".+?".+?pid-(\d+)-last.+?</tr>'
+    }
+
+html_path = "HTML/" + paths[mode]
+#html_path = "HTML/Crypto/"
+Equities_path = os.path.join(html_path, "*.htm*")
+Equities_pattern = patterns[mode]
+#Equities_pattern = r'<tr.+?rank\sicon">\d+<.+?title="(.+?)".+?title=".+?".+?pid-(\d+)-last.+?</tr>'
 dirs = glob.glob( Equities_path )
 
 url = "https://www.investing.com/instruments/HistoricalDataAjax"
@@ -22,7 +47,7 @@ headers = {
     'postman-token': "17db1643-3ef6-fa9e-157b-9d5058f391e4"
     }
 
-st_date_str = (datetime.datetime.utcnow() + datetime.timedelta(days = -200)).strftime("%m-%d-%Y").replace("-","%2F")
+st_date_str = (datetime.datetime.utcnow() + datetime.timedelta(days = -startdays[mode])).strftime("%m-%d-%Y").replace("-","%2F")
 end_date_str = (datetime.datetime.utcnow()).strftime("%m-%d-%Y").replace("-","%2F")
 
 for file_path in dirs:
@@ -32,8 +57,8 @@ for file_path in dirs:
     symbol_index = 0
     symbols_match = re.finditer(Equities_pattern,file_str,re.S)
     marketName = os.path.basename(file_path).split('.')[0] 
-    list_filename = os.path.join('Output/Stocks/list-' + marketName + '.txt')
-    price_filename = os.path.join('Output/Stocks/price-' + marketName + '.csv')
+    list_filename = os.path.join('Output/' + markets[mode] +'/list-' + marketName + '.txt')
+    price_filename = os.path.join('Output/' + markets[mode] +'/price-' + marketName + '_' + datetime.datetime.utcnow().strftime("%Y%m%d") + '.csv')
     list_file = open(list_filename, "w", encoding="utf-8")
     price_file = open(price_filename, "w", encoding="utf-8")
     list_file.truncate()
@@ -93,6 +118,8 @@ for file_path in dirs:
                 price_line += ","
             price_line += str(price_list[i])
         price_file.write(price_line)
-        print(price_line)
+        if symbol_index>=MaxRows[mode]:
+            break
+        #print(price_line)
     list_file.close()
     price_file.close()

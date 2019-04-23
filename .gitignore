@@ -118,3 +118,4 @@ dmypy.json
 *.css
 *.jpg
 HTML/*
+Output/*
